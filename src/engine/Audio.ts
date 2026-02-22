@@ -119,7 +119,7 @@ export function sfxCoinPickup(): void {
     gain.gain.linearRampToValueAtTime(0.6, now + i * 0.07 + 0.01);
     gain.gain.linearRampToValueAtTime(0, now + i * 0.07 + 0.15);
     osc.connect(gain);
-    gain.connect(sfxGain);
+    gain.connect(sfxGain!);
     osc.start(now + i * 0.07);
     osc.stop(now + i * 0.07 + 0.15);
   });
@@ -156,7 +156,7 @@ export function sfxLevelComplete(): void {
     gain.gain.linearRampToValueAtTime(0.3, t + 0.1);
     gain.gain.linearRampToValueAtTime(0, t + 0.3);
     osc.connect(gain);
-    gain.connect(sfxGain);
+    gain.connect(sfxGain!);
     osc.start(t);
     osc.stop(t + 0.3);
   });
@@ -179,7 +179,7 @@ export function sfxGameOver(): void {
     gain.gain.linearRampToValueAtTime(0.5, t + 0.02);
     gain.gain.linearRampToValueAtTime(0, t + 0.4);
     osc.connect(gain);
-    gain.connect(sfxGain);
+    gain.connect(sfxGain!);
     osc.start(t);
     osc.stop(t + 0.4);
   });
