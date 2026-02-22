@@ -43,9 +43,11 @@ function getSprite(src: string): HTMLImageElement | null {
     const img = spriteCache.get(src)!;
     return img.complete ? img : null;
   }
-  
+
   const img = new Image();
-  img.src = src;
+  // Resolve against Vite's base URL so assets load on GitHub Pages subpath
+  const base = import.meta.env.BASE_URL;
+  img.src = src.startsWith('/') ? base + src.slice(1) : src;
   spriteCache.set(src, img);
   return null;
 }
