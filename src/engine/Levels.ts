@@ -295,7 +295,7 @@ const LEVEL_5: LevelData = {
     { col: 38, row: 11 }, { col: 40, row: 11 },
     { col: 46, row: 13 }, { col: 48, row: 13 },
   ],
-  startCol: 2, startRow: 12,
+  startCol: 2, startRow: 10,
   goalCol: 53
 };
 

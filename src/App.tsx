@@ -174,6 +174,7 @@ function App() {
   const [coinCount, setCoinCount] = useState(0);
   const [lives, setLives] = useState(3);
   const [timeLeft, setTimeLeft] = useState(300);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   
   // Game State (refs for performance)
   const playerRef = useRef<Player | null>(null);
@@ -1187,7 +1188,22 @@ function App() {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gameScreen]);
-  
+
+  // Detect touch device
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
+
+  // Touch helpers — write directly to keysRef (same as keyboard)
+  const touchStart = (key: string) => (e: React.TouchEvent) => {
+    e.preventDefault();
+    keysRef.current[key] = true;
+  };
+  const touchEnd = (key: string) => (e: React.TouchEvent) => {
+    e.preventDefault();
+    keysRef.current[key] = false;
+  };
+
   // Render UI
   return (
     <div className="game-container">
@@ -1333,11 +1349,21 @@ function App() {
         </div>
       )}
 
-      {/* Mobile banner — keyboard required */}
-      <div className="mobile-banner">
-        🎮 This game requires a keyboard to play.<br />
-        Use a computer for the best experience!
-      </div>
+      {/* Touch controls — visible on touch devices during gameplay */}
+      {isTouchDevice && gameScreen === 'playing' && (
+        <div className="touch-controls">
+          <div className="touch-dpad">
+            <button className="touch-btn touch-left" onTouchStart={touchStart('ArrowLeft')} onTouchEnd={touchEnd('ArrowLeft')}>◀</button>
+            <button className="touch-btn touch-right" onTouchStart={touchStart('ArrowRight')} onTouchEnd={touchEnd('ArrowRight')}>▶</button>
+          </div>
+          <button className="touch-btn touch-jump" onTouchStart={touchStart('ArrowUp')} onTouchEnd={touchEnd('ArrowUp')}>▲</button>
+        </div>
+      )}
+
+      {/* Touch pause button */}
+      {isTouchDevice && gameScreen === 'playing' && (
+        <button className="touch-btn touch-pause" onTouchStart={() => setGameScreen('paused')}>⏸</button>
+      )}
     </div>
   );
 }
