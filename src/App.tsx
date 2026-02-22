@@ -150,6 +150,9 @@ function findGroundSurface(tilemap: Tilemap, col: number): number {
   return tilemap.height - 2;
 }
 
+// Resolve asset path against Vite base URL (for GitHub Pages subpath)
+const assetUrl = (path: string) => import.meta.env.BASE_URL + path.replace(/^\//, '');
+
 // Format time as M:SS
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -1197,9 +1200,9 @@ function App() {
             <h1 className="game-title">SUPER AJOLOTES</h1>
             <p className="game-subtitle">A Retro Platformer Adventure</p>
             <div className="character-preview">
-              <img src="/charlie_idle.png" alt="Charlie" className="preview-char" />
-              <img src="/corrie_idle.png" alt="Corrie" className="preview-char" />
-              <img src="/john_idle.png" alt="John" className="preview-char" />
+              <img src={assetUrl('/charlie_idle.png')} alt="Charlie" className="preview-char" />
+              <img src={assetUrl('/corrie_idle.png')} alt="Corrie" className="preview-char" />
+              <img src={assetUrl('/john_idle.png')} alt="John" className="preview-char" />
             </div>
             <button className="menu-btn primary" onClick={() => setGameScreen('character-select')}>START GAME</button>
             <div className="instructions">
@@ -1222,7 +1225,7 @@ function App() {
               {CHARACTERS.map(char => (
                 <button key={char.id} className={`character-card ${selectedCharacter.id === char.id ? 'selected' : ''}`}
                   onClick={() => setSelectedCharacter(char)} style={{ borderColor: char.color }}>
-                  <img src={char.sprite} alt={char.name} className="character-img" />
+                  <img src={assetUrl(char.sprite)} alt={char.name} className="character-img" />
                   <h3 style={{ color: char.color }}>{char.name}</h3>
                   <p className="char-desc">{char.desc}</p>
                   <div className="stats">
@@ -1321,9 +1324,9 @@ function App() {
               <p>Total Coins: {coinCount}</p>
             </div>
             <div className="victory-characters">
-              <img src="/charlie_idle.png" alt="Charlie" />
-              <img src="/corrie_idle.png" alt="Corrie" />
-              <img src="/john_idle.png" alt="John" />
+              <img src={assetUrl('/charlie_idle.png')} alt="Charlie" />
+              <img src={assetUrl('/corrie_idle.png')} alt="Corrie" />
+              <img src={assetUrl('/john_idle.png')} alt="John" />
             </div>
             <button className="menu-btn primary" onClick={() => setGameScreen('menu')}>PLAY AGAIN</button>
           </div>
