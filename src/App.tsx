@@ -25,7 +25,8 @@ import {
 } from './engine/GameEngine';
 import { PHYSICS, createParticleBurst, updateParticles, updateCamera, applyScreenShake, decayShake, checkAABB, TILE, type Tilemap } from './engine/Physics';
 import { initAudio, sfxJump, sfxLand, sfxCoinPickup, sfxStompKill, sfxPlayerHurt, sfxLevelComplete, sfxGameOver, sfxMysteryBlock, sfxSpikeHit, startMusic, stopMusic } from './engine/Audio';
-import { getBiome, type Biome } from './engine/Levels';
+import { getBiome, type Biome, type LevelData } from './engine/Levels';
+import LevelEditor from './components/LevelEditor';
 
 // ============================================================================
 // PIXELFORGE DYNAMICS - SUPER AJOLOTES v4.0
@@ -122,7 +123,7 @@ function preloadAllSprites(): void {
   getSprite('/goal_flag.png');
 }
 
-type GameScreen = 'menu' | 'character-select' | 'intro' | 'playing' | 'paused' | 'game-over' | 'level-complete' | 'victory' | 'time-up';
+type GameScreen = 'menu' | 'character-select' | 'intro' | 'playing' | 'paused' | 'game-over' | 'level-complete' | 'victory' | 'time-up' | 'level-editor';
 
 // Goal flag dimensions derived from TILE_SIZE (no magic numbers)
 const GOAL = {
@@ -192,33 +193,33 @@ function App() {
   const prevJumpRef = useRef(false);
   const timeRef = useRef(300);
   const timerTicksRef = useRef(0);  // Frame-based timer (counts physics ticks, 60 = 1 second)
-  
-  // Initialize level
-  const initLevel = useCallback((levelIdx: number) => {
-    const level = NEW_LEVELS[levelIdx];
+  const customLevelRef = useRef<LevelData | null>(null);
+
+  // Helper: get the current active level (custom or campaign)
+  const getActiveLevel = useCallback(() => {
+    return customLevelRef.current ?? NEW_LEVELS[currentLevelIdx];
+  }, [currentLevelIdx]);
+
+  // Initialize level from LevelData object
+  const initLevelFromData = useCallback((level: LevelData) => {
     tilemapRef.current = parseLevel(level.tiles);
-    
-    // Create player at start position
+
     playerRef.current = createPlayer(
       level.startCol * VISUALS.TILE_SIZE,
       level.startRow * VISUALS.TILE_SIZE - VISUALS.PLAYER_SIZE,
       selectedCharacter
     );
-    
-    // Create enemies
-    enemiesRef.current = level.enemies.map(e => 
+
+    enemiesRef.current = level.enemies.map(e =>
       createEnemy(e.col, e.row, e.type, e.patrol)
     );
-    
-    // Create coins
+
     coinsRef.current = level.coins.map(c => createCoin(c.col, c.row));
 
-    // Create moving platforms
     movingPlatformsRef.current = (level.movingPlatforms ?? []).map(mp =>
       createMovingPlatform(mp.col, mp.row, mp.range)
     );
 
-    // Scan tilemap for mystery blocks and create entities
     mysteryBlocksRef.current = [];
     tilemapRef.current.data.forEach((row, rowIdx) => {
       row.forEach((tile, colIdx) => {
@@ -228,7 +229,6 @@ function App() {
       });
     });
 
-    // Reset particles and camera — snap camera to player position immediately
     particlesRef.current = [];
     const playerX = level.startCol * VISUALS.TILE_SIZE;
     const playerY = level.startRow * VISUALS.TILE_SIZE - VISUALS.PLAYER_SIZE;
@@ -239,15 +239,20 @@ function App() {
       y: Math.max(0, Math.min(playerY - VISUALS.CANVAS_HEIGHT / 2 + VISUALS.PLAYER_SIZE / 2, levelHeight - VISUALS.CANVAS_HEIGHT)),
     };
     screenShakeRef.current = 0;
-    
-    // Reset timer
+
     timeRef.current = level.timeLimit;
     setTimeLeft(level.timeLimit);
     timerTicksRef.current = 0;
   }, [selectedCharacter]);
+
+  // Initialize level by campaign index
+  const initLevel = useCallback((levelIdx: number) => {
+    initLevelFromData(NEW_LEVELS[levelIdx]);
+  }, [initLevelFromData]);
   
   // Start game
   const startGame = useCallback(() => {
+    customLevelRef.current = null;
     setScore(0);
     setCoinCount(0);
     setLives(3);
@@ -259,7 +264,20 @@ function App() {
     
     setTimeout(() => setGameScreen('playing'), 2000);
   }, [initLevel]);
-  
+
+  // Play a custom level from the editor
+  const playCustomLevel = useCallback((levelData: LevelData) => {
+    customLevelRef.current = levelData;
+    setScore(0);
+    setCoinCount(0);
+    setLives(3);
+    keysRef.current = {};
+    prevJumpRef.current = false;
+    initLevelFromData(levelData);
+    setGameScreen('intro');
+    setTimeout(() => setGameScreen('playing'), 2000);
+  }, [initLevelFromData]);
+
   // Next level
   const nextLevel = useCallback(() => {
     const next = currentLevelIdx + 1;
@@ -280,9 +298,13 @@ function App() {
     setLives(3);
     keysRef.current = {};
     prevJumpRef.current = false;
-    initLevel(currentLevelIdx);
+    if (customLevelRef.current) {
+      initLevelFromData(customLevelRef.current);
+    } else {
+      initLevel(currentLevelIdx);
+    }
     setGameScreen('playing');
-  }, [currentLevelIdx, initLevel]);
+  }, [currentLevelIdx, initLevel, initLevelFromData]);
   
   // Game update loop
   const update = useCallback(() => {
@@ -596,7 +618,7 @@ function App() {
     });
     
     // Check goal (dynamic math from TILE_SIZE, no magic numbers)
-    const level = NEW_LEVELS[currentLevelIdx];
+    const level = getActiveLevel();
     const goalX = level.goalCol * VISUALS.TILE_SIZE;
     // Find the topmost ground row at the goal column for proper flag placement
     const goalGroundRow = level.goalRow ?? findGroundSurface(tilemap, level.goalCol);
@@ -658,7 +680,7 @@ function App() {
     ctx.fillRect(0, 0, VISUALS.CANVAS_WIDTH, VISUALS.CANVAS_HEIGHT);
     
     // Draw background (using sprite cache)
-    const level = NEW_LEVELS[currentLevelIdx];
+    const level = getActiveLevel();
     const bgImage = getSprite(level.background);
     
     if (bgImage) {
@@ -1071,7 +1093,7 @@ function App() {
     
     // Level
     ctx.fillStyle = '#60a5fa';
-    ctx.fillText(`LEVEL ${currentLevelIdx + 1}/10`, 200, 45);
+    ctx.fillText(customLevelRef.current ? getActiveLevel().name : `LEVEL ${currentLevelIdx + 1}/10`, 200, 45);
     
     // === TIMER (SMB3 Style) ===
     const timerColor = timeLeft <= 30 ? '#ef4444' : timeLeft <= 60 ? '#fbbf24' : '#ffffff';
@@ -1124,7 +1146,7 @@ function App() {
       sfxGameOver();
     } else if (gameScreen === 'playing') {
       // Determine biome from level background for music
-      const bg = NEW_LEVELS[currentLevelIdx].background;
+      const bg = getActiveLevel().background;
       const biome = bg.includes('cave') ? 'cave' as const
                   : bg.includes('volcano') ? 'volcano' as const
                   : 'underwater' as const;
@@ -1221,6 +1243,7 @@ function App() {
               <img src={assetUrl('/john_idle.png')} alt="John" className="preview-char" />
             </div>
             <button className="menu-btn primary" onClick={() => setGameScreen('character-select')}>START GAME</button>
+            <button className="menu-btn secondary" onClick={() => { customLevelRef.current = null; setGameScreen('level-editor'); }}>LEVEL EDITOR</button>
             <div className="instructions">
               <p><span className="key">ARROWS / WASD</span> Move</p>
               <p><span className="key">SPACE / W / ↑</span> Jump</p>
@@ -1271,10 +1294,10 @@ function App() {
       {gameScreen === 'intro' && (
         <div className="menu-overlay intro">
           <div className="intro-content">
-            <h2 className="level-name">{NEW_LEVELS[currentLevelIdx].name}</h2>
-            <p className="level-subtitle">{NEW_LEVELS[currentLevelIdx].subtitle}</p>
-            <div className="level-number">LEVEL {currentLevelIdx + 1}</div>
-            <div className="timer-preview">TIME: {formatTime(NEW_LEVELS[currentLevelIdx].timeLimit)}</div>
+            <h2 className="level-name">{getActiveLevel().name}</h2>
+            <p className="level-subtitle">{getActiveLevel().subtitle}</p>
+            <div className="level-number">{customLevelRef.current ? 'CUSTOM LEVEL' : `LEVEL ${currentLevelIdx + 1}`}</div>
+            <div className="timer-preview">TIME: {formatTime(getActiveLevel().timeLimit)}</div>
           </div>
         </div>
       )}
@@ -1297,7 +1320,10 @@ function App() {
             <h2 className="menu-title" style={{ color: '#ef4444' }}>TIME'S UP!</h2>
             <p className="final-score">You ran out of time!</p>
             <button className="menu-btn primary" onClick={continueGame}>TRY AGAIN</button>
-            <button className="menu-btn secondary" onClick={() => setGameScreen('menu')}>MAIN MENU</button>
+            {customLevelRef.current && (
+              <button className="menu-btn secondary" onClick={() => setGameScreen('level-editor')}>BACK TO EDITOR</button>
+            )}
+            <button className="menu-btn secondary" onClick={() => { customLevelRef.current = null; setGameScreen('menu'); }}>MAIN MENU</button>
           </div>
         </div>
       )}
@@ -1310,7 +1336,10 @@ function App() {
             <p className="final-score">Final Score: {score}</p>
             <p className="final-coins">Coins: {coinCount}</p>
             <button className="menu-btn primary" onClick={continueGame}>CONTINUE</button>
-            <button className="menu-btn secondary" onClick={() => setGameScreen('menu')}>MAIN MENU</button>
+            {customLevelRef.current && (
+              <button className="menu-btn secondary" onClick={() => setGameScreen('level-editor')}>BACK TO EDITOR</button>
+            )}
+            <button className="menu-btn secondary" onClick={() => { customLevelRef.current = null; setGameScreen('menu'); }}>MAIN MENU</button>
           </div>
         </div>
       )}
@@ -1323,8 +1352,12 @@ function App() {
             <p className="level-score">Score: {score}</p>
             <p className="level-coins">Coins: {coinCount}</p>
             <p className="time-bonus" style={{ color: '#fbbf24' }}>Time Bonus: +{timeLeft * 10}</p>
-            <button className="menu-btn primary" onClick={nextLevel}>NEXT LEVEL</button>
-            <button className="menu-btn secondary" onClick={() => setGameScreen('menu')}>MAIN MENU</button>
+            {customLevelRef.current ? (
+              <button className="menu-btn primary" onClick={() => setGameScreen('level-editor')}>BACK TO EDITOR</button>
+            ) : (
+              <button className="menu-btn primary" onClick={nextLevel}>NEXT LEVEL</button>
+            )}
+            <button className="menu-btn secondary" onClick={() => { customLevelRef.current = null; setGameScreen('menu'); }}>MAIN MENU</button>
           </div>
         </div>
       )}
@@ -1344,9 +1377,17 @@ function App() {
               <img src={assetUrl('/corrie_idle.png')} alt="Corrie" />
               <img src={assetUrl('/john_idle.png')} alt="John" />
             </div>
-            <button className="menu-btn primary" onClick={() => setGameScreen('menu')}>PLAY AGAIN</button>
+            <button className="menu-btn primary" onClick={() => { customLevelRef.current = null; setGameScreen('menu'); }}>PLAY AGAIN</button>
           </div>
         </div>
+      )}
+
+      {/* LEVEL EDITOR */}
+      {gameScreen === 'level-editor' && (
+        <LevelEditor
+          onBack={() => { customLevelRef.current = null; setGameScreen('menu'); }}
+          onPlayLevel={playCustomLevel}
+        />
       )}
 
       {/* Touch controls — visible on touch devices during gameplay */}
