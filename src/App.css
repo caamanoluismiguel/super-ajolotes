@@ -464,70 +464,67 @@ html, body {
   z-index: 51;
 }
 
-/* Responsive */
-@media (max-width: 1400px) {
-  .game-canvas {
-    transform: scale(0.9);
-  }
+/* Responsive — use width:100% instead of transform to properly shrink layout */
+.game-canvas {
+  width: min(1280px, 95vw);
+  height: auto;
 }
 
 @media (max-width: 1200px) {
-  .game-canvas {
-    transform: scale(0.75);
-  }
-  
-  .game-title {
-    font-size: 48px;
-  }
-  
-  .menu-title {
-    font-size: 28px;
-  }
-  
-  .level-name {
-    font-size: 36px;
-  }
+  .game-title { font-size: 48px; }
+  .menu-title { font-size: 28px; }
+  .level-name { font-size: 36px; }
 }
 
 @media (max-width: 1000px) {
-  .game-canvas {
-    transform: scale(0.6);
-  }
-  
-  .game-title {
-    font-size: 36px;
-  }
-  
-  .menu-title {
-    font-size: 22px;
-  }
-  
-  .level-name {
-    font-size: 28px;
-  }
-  
-  .character-grid {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .character-card {
-    width: 280px;
-  }
+  .game-title { font-size: 36px; }
+  .menu-title { font-size: 22px; }
+  .level-name { font-size: 28px; }
+  .character-grid { flex-direction: column; align-items: center; }
+  .character-card { width: 280px; }
 }
 
 @media (max-width: 800px) {
-  .game-canvas {
-    transform: scale(0.5);
-  }
-  
-  .game-title {
-    font-size: 28px;
-  }
-  
-  .level-name {
-    font-size: 22px;
-  }
+  .game-title { font-size: 24px; letter-spacing: 2px; }
+  .game-subtitle { font-size: 12px; margin-bottom: 20px; }
+  .menu-title { font-size: 18px; }
+  .level-name { font-size: 20px; }
+  .menu-content { padding: 20px; }
+  .character-preview { gap: 20px; margin-bottom: 30px; }
+  .preview-char { width: 64px; height: 64px; }
+  .instructions { padding: 15px 20px; margin-top: 20px; }
+  .instructions p { font-size: 10px; margin: 8px 0; }
+  .instructions .key { font-size: 9px; padding: 3px 6px; }
+  .menu-btn { font-size: 11px; padding: 14px 24px; }
+  .character-card { width: 240px; padding: 15px; }
+  .character-img { width: 60px; height: 60px; }
+  .character-card h3 { font-size: 14px; }
+}
+
+/* Mobile banner — keyboard required */
+.mobile-banner {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border-top: 2px solid #fbbf24;
+  color: #fbbf24;
+  text-align: center;
+  padding: 12px 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  line-height: 1.6;
+  z-index: 200;
+}
+
+@media (max-width: 800px) {
+  .mobile-banner { display: block; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .mobile-banner { display: block; }
 }
 
 /* Custom scrollbar */

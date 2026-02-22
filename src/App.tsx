@@ -1332,6 +1332,12 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Mobile banner — keyboard required */}
+      <div className="mobile-banner">
+        🎮 This game requires a keyboard to play.<br />
+        Use a computer for the best experience!
+      </div>
     </div>
   );
 }
